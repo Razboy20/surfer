@@ -17,3 +17,5 @@ examples/save_and_start_with_state.ron
 
 .venv
 .env
+
+node_modules

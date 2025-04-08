@@ -1,4 +1,4 @@
-use super::{TranslationPreference, ValueKind, VariableInfo};
+use super::{asm_gheith, check_single_wordlength, TranslationPreference, ValueKind, VariableInfo};
 use crate::wave_container::{ScopeId, VarId, VariableMeta};
 
 use color_eyre::Result;
@@ -322,6 +322,34 @@ impl BasicTranslator<VarId, ScopeId> for ASCIITranslator {
                 ),
             },
         }
+    }
+}
+
+pub struct GheithTranslator {}
+
+impl BasicTranslator<VarId, ScopeId> for GheithTranslator {
+    fn name(&self) -> String {
+        "Gheith Asm".to_string()
+    }
+
+    fn basic_translate(&self, _num_bits: u64, value: &VariableValue) -> (String, ValueKind) {
+        let u16_value: u16 = match value {
+            VariableValue::BigUint(v) => v.to_u32_digits().last().cloned(),
+            VariableValue::String(s) => match check_vector_variable(s) {
+                Some(v) => return v,
+                None => s.parse().ok(),
+            },
+        }
+        .unwrap_or(0) as u16;
+
+        match asm_gheith::I::try_from(u16_value) {
+            Ok(insn) => (format!("{:?}", insn), ValueKind::Normal),
+            Err(_) => (format!("ILLEGAL INSN ({:#x})", u16_value), ValueKind::Warn),
+        }
+    }
+
+    fn translates(&self, variable: &VariableMeta) -> Result<TranslationPreference> {
+        check_single_wordlength(variable.num_bits, 16)
     }
 }
 
